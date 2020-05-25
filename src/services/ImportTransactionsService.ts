@@ -20,7 +20,7 @@ class ImportTransactionsService {
 
     const parsers = csvParse({
       from_line: 2, //linha de inicio de leitura do csv, como nao tem linha 0 e a linha 1 é o cabeçalho entao começo da linha 2
-    })
+    });
 
     const parseCSV = readStream.pipe(parsers);
 
@@ -30,14 +30,14 @@ class ImportTransactionsService {
     parseCSV.on('data', async line => {
       //le linha por linha e desestrutura em valores separados
       const [title, type, value, category] = line.map((cell: string) =>
-        cell.trim()
+        cell.trim(),
       );
 
       if (!title || !type || !value) return;
 
       categories.push(category);
       transactions.push({ title, type, value, category });
-    })
+    });
 
     //o comando acima é meio q assincrono e dispara um 'end' no fim da execução
     //para ver isso deve inserir a linha abaixo
@@ -46,12 +46,12 @@ class ImportTransactionsService {
 
     const categoriesFound = await repoCategories.find({
       where: {
-        title: In(categories)
-      }
+        title: In(categories),
+      },
     });
 
     const categoriesFoundTitles = categoriesFound.map(
-      (category:Category) => category.title
+      (category: Category) => category.title,
     );
 
     const categoriesTitles = categories
@@ -59,22 +59,23 @@ class ImportTransactionsService {
       .filter((value, index, self) => self.indexOf(value) === index);
 
     const createCategories = repoCategories.create(
-      categoriesTitles.map(title => ({ title }))
-    )
+      categoriesTitles.map(title => ({ title })),
+    );
 
     await repoCategories.save(createCategories);
 
     const allCategories = [...createCategories, ...categoriesFound];
 
     const createTransactions = repoTransactions.create(
-      transactions.map(transaction=>({
-        title:transaction.title,
-        type:transaction.type,
-        value:transaction.value,
+      transactions.map(transaction => ({
+        title: transaction.title,
+        type: transaction.type,
+        value: transaction.value,
         category: allCategories.find(
-          category => category.title === transaction.category),
-      }))
-    )
+          category => category.title === transaction.category,
+        ),
+      })),
+    );
 
     await repoTransactions.save(createTransactions);
 
